@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        SONARQUBE = 'sonarqube'
+    }
+
     stages {
 
         stage('Checkout') {
@@ -18,6 +22,14 @@ pipeline {
         stage('Trivy Security Scan') {
             steps {
                 sh 'trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 devsecops-app:jenkins'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE}") {
+                    sh 'sonar-scanner'
+                }
             }
         }
 
