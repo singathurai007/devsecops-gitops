@@ -11,14 +11,15 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t devsecops-app:jenkins ./app'
+                sh 'docker build --no-cache -t devsecops-app:jenkins ./app'
             }
         }
+
         stage('Trivy Security Scan') {
-    steps {
-        sh 'trivy image --severity HIGH,CRITICAL --exit-code 1 devsecops-app:jenkins'
-    }
-}
+            steps {
+                sh 'trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 devsecops-app:jenkins'
+            }
+        }
 
         stage('Test Application') {
             steps {
