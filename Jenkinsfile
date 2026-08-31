@@ -14,6 +14,11 @@ pipeline {
                 sh 'docker build -t devsecops-app:jenkins ./app'
             }
         }
+        stage('Trivy Security Scan') {
+    steps {
+        sh 'trivy image --severity HIGH,CRITICAL --exit-code 1 devsecops-app:jenkins'
+    }
+}
 
         stage('Test Application') {
             steps {
