@@ -36,13 +36,17 @@ pipeline {
                             variable: 'SONAR_TOKEN'
                         )
                     ]) {
-                        sh '''
-                            sonar-scanner \
-                              -Dsonar.projectKey=devsecops-app \
-                              -Dsonar.sources=app \
-                              -Dsonar.host.url="$SONAR_HOST_URL" \
-                              -Dsonar.token="$SONAR_TOKEN"
-                        '''
+                        script {
+                            def scannerHome = tool 'sonar-scanner'
+
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                  -Dsonar.projectKey=devsecops-app \
+                                  -Dsonar.sources=app \
+                                  -Dsonar.host.url=\$SONAR_HOST_URL \
+                                  -Dsonar.token=\$SONAR_TOKEN
+                            """
+                        }
                     }
                 }
             }
