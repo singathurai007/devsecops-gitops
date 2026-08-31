@@ -28,12 +28,13 @@ pipeline {
         stage('SonarQube Analysis') {
     steps {
         withSonarQubeEnv('sonarqube') {
-            sh "${tool 'sonar-scanner'}/bin/sonar-scanner"
+            withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                sh "${tool 'sonar-scanner'}/bin/sonar-scanner -Dsonar.token=${SONAR_TOKEN}"
+            }
         }
     }
 }
-
-        stage('Test Application') {
+         stage('Test Application') {
             steps {
                 sh 'docker run -d --name devsecops-test -p 5001:5000 devsecops-app:jenkins'
                 sh 'sleep 5'
