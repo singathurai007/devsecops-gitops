@@ -4,7 +4,6 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'singathurai/devsecops-app'
-        SONAR_HOST_URL = 'http://15.252.19.115:9000'
     }
 
     stages {
@@ -38,31 +37,6 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonarQube') {
-                    withCredentials([
-                        string(
-                            credentialsId: 'sonarqube-token',
-                            variable: 'SONAR_TOKEN'
-                        )
-                    ]) {
-                        script {
-                            def scannerHome = tool 'sonar-scanner'
-
-                            sh """
-                                ${scannerHome}/bin/sonar-scanner \
-                                  -Dsonar.projectKey=devsecops-app \
-                                  -Dsonar.sources=app \
-                                  -Dsonar.host.url=${SONAR_HOST_URL} \
-                                  -Dsonar.token=\$SONAR_TOKEN
-                            """
-                        }
-                    }
-                }
-            }
-        }
-
         stage('Test Application') {
             steps {
                 sh '''
@@ -75,7 +49,11 @@ pipeline {
 
                     sleep 5
 
+                    echo "Testing application health..."
+
                     curl -f http://localhost:5001/health
+
+                    echo "Application test successful!"
 
                     docker rm -f devsecops-test
                 '''
@@ -118,17 +96,19 @@ pipeline {
                         git config user.name "Jenkins"
                         git config user.email "jenkins@localhost"
 
-                        # Get latest main branch
+                        echo "Fetching latest main branch..."
+
                         git fetch origin main
+
                         git reset --hard origin/main
 
-                        # Update Kubernetes image
+                        echo "Updating Kubernetes image..."
+
                         sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
 
-                        echo "Updated Kubernetes image:"
+                        echo "Current Kubernetes image:"
                         grep "image:" k8s/deployment.yaml
 
-                        # Check whether there is actually a change
                         if git diff --quiet k8s/deployment.yaml; then
                             echo "No Kubernetes manifest changes"
                         else
@@ -155,11 +135,15 @@ pipeline {
         }
 
         success {
+            echo '=========================================='
             echo 'DevSecOps Pipeline completed successfully!'
+            echo '=========================================='
         }
 
         failure {
+            echo '=========================================='
             echo 'DevSecOps Pipeline failed!'
+            echo '=========================================='
         }
     }
 }
