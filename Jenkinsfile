@@ -59,6 +59,31 @@ pipeline {
                 }
             }
         }
+        stage('Push Docker Image') {
+    steps {
+        withCredentials([
+            usernamePassword(
+                credentialsId: 'dockerhub-credentials',
+                usernameVariable: 'DOCKER_USERNAME',
+                passwordVariable: 'DOCKER_PASSWORD'
+            )
+        ]) {
+            sh '''
+                echo "$DOCKER_PASSWORD" | docker login \
+                    -u "$DOCKER_USERNAME" \
+                    --password-stdin
+
+                docker tag devsecops-app:jenkins \
+                    $DOCKER_USERNAME/devsecops-app:latest
+
+                docker push \
+                    $DOCKER_USERNAME/devsecops-app:latest
+
+                docker logout
+            '''
+        }
+    }
+}
 
         stage('Test Application') {
             steps {
