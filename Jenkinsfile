@@ -104,7 +104,20 @@ pipeline {
             }
         }
     }
+    stage('Update Kubernetes Manifest') {
+    steps {
+        sh '''
+            sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${IMAGE_TAG}#" k8s/deployment.yaml
 
+            git config user.email "cmsingathurai@gmail.com"
+            git config user.name "singathurai007"
+
+            git add k8s/deployment.yaml
+            git commit -m "Update image to ${IMAGE_TAG}" || true
+            git push
+        '''
+    }
+}
     post {
         always {
             sh '''
