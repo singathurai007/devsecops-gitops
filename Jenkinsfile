@@ -85,6 +85,24 @@ pipeline {
     }
 }
 
+        stage('Deploy to EC2') {
+    steps {
+        sshagent(['ec2-ssh']) {
+            sh '''
+                ssh -o StrictHostKeyChecking=no ubuntu@YOUR_EC2_PUBLIC_IP "
+                    docker pull singathurai/devsecops-app:latest
+                    docker rm -f devsecops-app 2>/dev/null || true
+                    docker run -d \
+                      --name devsecops-app \
+                      -p 5000:5000 \
+                      --restart unless-stopped \
+                      singathurai/devsecops-app:latest
+                "
+            '''
+        }
+    }
+}
+
         stage('Test Application') {
             steps {
                 sh '''
