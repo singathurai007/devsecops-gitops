@@ -40,7 +40,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonarqube') {
+                withSonarQubeEnv('SonarQube') {
                     withCredentials([
                         string(
                             credentialsId: 'sonarqube-token',
@@ -118,16 +118,22 @@ pipeline {
                         git config user.name "Jenkins"
                         git config user.email "jenkins@localhost"
 
+                        # Get latest main branch
+                        git fetch origin main
+                        git reset --hard origin/main
+
+                        # Update Kubernetes image
                         sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
 
                         echo "Updated Kubernetes image:"
                         grep "image:" k8s/deployment.yaml
 
-                        git add k8s/deployment.yaml
-
-                        if git diff --cached --quiet; then
+                        # Check whether there is actually a change
+                        if git diff --quiet k8s/deployment.yaml; then
                             echo "No Kubernetes manifest changes"
                         else
+                            git add k8s/deployment.yaml
+
                             git commit -m "Update image to ${BUILD_NUMBER} [skip ci]"
 
                             git push \
