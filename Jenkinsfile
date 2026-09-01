@@ -53,7 +53,7 @@ pipeline {
                                 ${scannerHome}/bin/sonar-scanner \
                                   -Dsonar.projectKey=devsecops-app \
                                   -Dsonar.sources=app \
-                                  -Dsonar.host.url=\\\$SONAR_HOST_URL \
+                                  -Dsonar.host.url=http://15.252.19.115:9000 \
                                   -Dsonar.token=\\\$SONAR_TOKEN
                             """
                         }
