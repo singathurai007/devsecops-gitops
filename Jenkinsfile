@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'singathurai/devsecops-app'
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_TAG  = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -18,9 +18,9 @@ pipeline {
             steps {
                 sh '''
                     docker build --no-cache \
-                    -t ${IMAGE_NAME}:${IMAGE_TAG} \
-                    -t ${IMAGE_NAME}:latest \
-                    ./app
+                      -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                      -t ${IMAGE_NAME}:latest \
+                      ./app
                 '''
             }
         }
@@ -29,10 +29,10 @@ pipeline {
             steps {
                 sh '''
                     trivy image \
-                    --severity HIGH,CRITICAL \
-                    --ignore-unfixed \
-                    --exit-code 1 \
-                    ${IMAGE_NAME}:${IMAGE_TAG}
+                      --severity HIGH,CRITICAL \
+                      --ignore-unfixed \
+                      --exit-code 1 \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
@@ -53,8 +53,8 @@ pipeline {
                                 ${scannerHome}/bin/sonar-scanner \
                                   -Dsonar.projectKey=devsecops-app \
                                   -Dsonar.sources=app \
-                                  -Dsonar.host.url=\$SONAR_HOST_URL \
-                                  -Dsonar.token=\$SONAR_TOKEN
+                                  -Dsonar.host.url=\\\$SONAR_HOST_URL \
+                                  -Dsonar.token=\\\$SONAR_TOKEN
                             """
                         }
                     }
@@ -103,21 +103,25 @@ pipeline {
                 }
             }
         }
-    }
-    stage('Update Kubernetes Manifest') {
-    steps {
-        sh '''
-            sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${IMAGE_TAG}#" k8s/deployment.yaml
 
-            git config user.email "cmsingathurai@gmail.com"
-            git config user.name "singathurai007"
+        stage('Update Kubernetes Manifest') {
+            steps {
+                sh '''
+                    sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${IMAGE_TAG}#" k8s/deployment.yaml
 
-            git add k8s/deployment.yaml
-            git commit -m "Update image to ${IMAGE_TAG}" || true
-            git push
-        '''
+                    git config user.email "cmsingathurai@gmail.com"
+                    git config user.name "singathurai007"
+
+                    git add k8s/deployment.yaml
+
+                    git commit -m "Update image to ${IMAGE_TAG}" || true
+
+                    git push origin main
+                '''
+            }
+        }
     }
-}
+
     post {
         always {
             sh '''
