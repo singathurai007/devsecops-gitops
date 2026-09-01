@@ -120,7 +120,7 @@ pipeline {
 
                         sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
 
-                        echo "Kubernetes image:"
+                        echo "Updated Kubernetes image:"
                         grep "image:" k8s/deployment.yaml
 
                         git add k8s/deployment.yaml
