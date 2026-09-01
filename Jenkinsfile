@@ -54,7 +54,7 @@ pipeline {
                                   -Dsonar.projectKey=devsecops-app \
                                   -Dsonar.sources=app \
                                   -Dsonar.host.url=http://15.252.19.115:9000 \
-                                  -Dsonar.token=\\\$SONAR_TOKEN
+                                  -Dsonar.token=\$SONAR_TOKEN
                             """
                         }
                     }
@@ -107,16 +107,19 @@ pipeline {
         stage('Update Kubernetes Manifest') {
             steps {
                 sh '''
-                    sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${IMAGE_TAG}#" k8s/deployment.yaml
-
                     git config user.email "cmsingathurai@gmail.com"
                     git config user.name "singathurai007"
 
+                    sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
+
+                    echo "Updated Kubernetes image:"
+                    grep "image:" k8s/deployment.yaml
+
                     git add k8s/deployment.yaml
 
-                    git commit -m "Update image to ${IMAGE_TAG}" || true
+                    git commit -m "Update image to ${BUILD_NUMBER}" || true
 
-                    git push origin main
+                    git push origin HEAD:main
                 '''
             }
         }
