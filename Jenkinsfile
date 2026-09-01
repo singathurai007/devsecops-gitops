@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'singathurai/devsecops-app'
-        IMAGE_TAG  = "${BUILD_NUMBER}"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -103,34 +103,35 @@ pipeline {
                 }
             }
         }
-stage('Update Kubernetes Manifest') {
-    steps {
-        withCredentials([
-            usernamePassword(
-                credentialsId: 'github-credentials',
-                usernameVariable: 'GITHUB_USERNAME',
-                passwordVariable: 'GITHUB_TOKEN'
-            )
-        ]) {
-            sh '''
-                git config user.email "cmsingathurai@gmail.com"
-                git config user.name "singathurai007"
 
-                sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
+        stage('Update Kubernetes Manifest') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'github-credentials',
+                        usernameVariable: 'GITHUB_USERNAME',
+                        passwordVariable: 'GITHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        git config user.email "cmsingathurai@gmail.com"
+                        git config user.name "singathurai007"
 
-                echo "Updated Kubernetes image:"
-                grep "image:" k8s/deployment.yaml
+                        sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
 
-                git add k8s/deployment.yaml
+                        echo "Updated Kubernetes image:"
+                        grep "image:" k8s/deployment.yaml
 
-                git commit -m "Update image to ${BUILD_NUMBER}" || true
+                        git add k8s/deployment.yaml
 
-                git push https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/singathurai007/devsecops-gitops.git HEAD:main
-            '''
+                        git commit -m "Update image to ${BUILD_NUMBER}" || true
+
+                        git push https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/singathurai007/devsecops-gitops.git HEAD:main
+                    '''
+                }
+            }
         }
     }
-}
-    
 
     post {
         always {
@@ -139,4 +140,4 @@ stage('Update Kubernetes Manifest') {
             '''
         }
     }
-
+}
