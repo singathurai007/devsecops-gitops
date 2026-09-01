@@ -103,27 +103,34 @@ pipeline {
                 }
             }
         }
+stage('Update Kubernetes Manifest') {
+    steps {
+        withCredentials([
+            usernamePassword(
+                credentialsId: 'github-credentials',
+                usernameVariable: 'GITHUB_USERNAME',
+                passwordVariable: 'GITHUB_TOKEN'
+            )
+        ]) {
+            sh '''
+                git config user.email "cmsingathurai@gmail.com"
+                git config user.name "singathurai007"
 
-        stage('Update Kubernetes Manifest') {
-            steps {
-                sh '''
-                    git config user.email "cmsingathurai@gmail.com"
-                    git config user.name "singathurai007"
+                sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
 
-                    sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
+                echo "Updated Kubernetes image:"
+                grep "image:" k8s/deployment.yaml
 
-                    echo "Updated Kubernetes image:"
-                    grep "image:" k8s/deployment.yaml
+                git add k8s/deployment.yaml
 
-                    git add k8s/deployment.yaml
+                git commit -m "Update image to ${BUILD_NUMBER}" || true
 
-                    git commit -m "Update image to ${BUILD_NUMBER}" || true
-
-                    git push origin HEAD:main
-                '''
-            }
+                git push https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/singathurai007/devsecops-gitops.git HEAD:main
+            '''
         }
     }
+}
+    
 
     post {
         always {
@@ -132,4 +139,4 @@ pipeline {
             '''
         }
     }
-}
+
