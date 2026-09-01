@@ -1,9 +1,11 @@
 pipeline {
+
     agent any
 
     environment {
-        IMAGE_NAME = 'singathurai/devsecops-app'
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        DOCKER_IMAGE = 'singathurai/devsecops-app'
+        SONARQUBE_SERVER = 'sonarqube'
+        SONAR_HOST_URL = 'http://15.252.19.115:9000'
     }
 
     stages {
@@ -18,8 +20,8 @@ pipeline {
             steps {
                 sh '''
                     docker build --no-cache \
-                      -t ${IMAGE_NAME}:${IMAGE_TAG} \
-                      -t ${IMAGE_NAME}:latest \
+                      -t ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                      -t ${DOCKER_IMAGE}:latest \
                       ./app
                 '''
             }
@@ -32,14 +34,14 @@ pipeline {
                       --severity HIGH,CRITICAL \
                       --ignore-unfixed \
                       --exit-code 1 \
-                      ${IMAGE_NAME}:${IMAGE_TAG}
+                      ${DOCKER_IMAGE}:${BUILD_NUMBER}
                 '''
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonarqube') {
+                withSonarQubeEnv("${SONARQUBE_SERVER}") {
                     withCredentials([
                         string(
                             credentialsId: 'sonarqube-token',
@@ -53,8 +55,8 @@ pipeline {
                                 ${scannerHome}/bin/sonar-scanner \
                                   -Dsonar.projectKey=devsecops-app \
                                   -Dsonar.sources=app \
-                                  -Dsonar.host.url=http://15.252.19.115:9000 \
-                                  -Dsonar.token=\$SONAR_TOKEN
+                                  -Dsonar.host.url=${SONAR_HOST_URL} \
+                                  -Dsonar.token=${SONAR_TOKEN}
                             """
                         }
                     }
@@ -70,7 +72,7 @@ pipeline {
                     docker run -d \
                       --name devsecops-test \
                       -p 5001:5000 \
-                      ${IMAGE_NAME}:${IMAGE_TAG}
+                      ${DOCKER_IMAGE}:${BUILD_NUMBER}
 
                     sleep 5
 
@@ -95,8 +97,9 @@ pipeline {
                           -u "$DOCKER_USERNAME" \
                           --password-stdin
 
-                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                        docker push ${IMAGE_NAME}:latest
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+
+                        docker push ${DOCKER_IMAGE}:latest
 
                         docker logout
                     '''
@@ -107,26 +110,32 @@ pipeline {
         stage('Update Kubernetes Manifest') {
             steps {
                 withCredentials([
-                    usernamePassword(
-                        credentialsId: 'github-credentials',
-                        usernameVariable: 'GITHUB_USERNAME',
-                        passwordVariable: 'GITHUB_TOKEN'
+                    string(
+                        credentialsId: 'github-token',
+                        variable: 'GITHUB_TOKEN'
                     )
                 ]) {
                     sh '''
                         git config user.email "cmsingathurai@gmail.com"
                         git config user.name "singathurai007"
 
-                        sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
+                        sed -i "s#image: ${DOCKER_IMAGE}:.*#image: ${DOCKER_IMAGE}:${BUILD_NUMBER}#" \
+                          k8s/deployment.yaml
 
                         echo "Updated Kubernetes image:"
                         grep "image:" k8s/deployment.yaml
 
                         git add k8s/deployment.yaml
 
-                        git commit -m "Update image to ${BUILD_NUMBER}" || true
+                        if git diff --cached --quiet; then
+                            echo "No Kubernetes manifest changes"
+                        else
+                            git commit -m "Update image to ${BUILD_NUMBER} [skip ci]"
 
-                        git push https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/singathurai007/devsecops-gitops.git HEAD:main
+                            git push \
+                              https://${GITHUB_TOKEN}@github.com/singathurai007/devsecops-gitops.git \
+                              HEAD:main
+                        fi
                     '''
                 }
             }
@@ -138,6 +147,14 @@ pipeline {
             sh '''
                 docker rm -f devsecops-test 2>/dev/null || true
             '''
+        }
+
+        success {
+            echo 'DevSecOps Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'DevSecOps Pipeline failed!'
         }
     }
 }
