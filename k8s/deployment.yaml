@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: devsecops-app
-          image: singathurai/devsecops-app:65
+          image: singathurai/devsecops-app:66
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
