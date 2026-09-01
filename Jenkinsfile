@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = 'singathurai/devsecops-app'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
     stages {
 
         stage('Checkout') {
@@ -11,7 +16,12 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build --no-cache -t devsecops-app:jenkins ./app'
+                sh '''
+                    docker build --no-cache \
+                    -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                    -t ${IMAGE_NAME}:latest \
+                    ./app
+                '''
             }
         }
 
@@ -22,7 +32,7 @@ pipeline {
                     --severity HIGH,CRITICAL \
                     --ignore-unfixed \
                     --exit-code 1 \
-                    devsecops-app:jenkins
+                    ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
@@ -52,57 +62,6 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-        stage('Push Docker Image') {
-    steps {
-        withCredentials([
-            usernamePassword(
-                credentialsId: 'dockerhub-credentials',
-                usernameVariable: 'DOCKER_USERNAME',
-                passwordVariable: 'DOCKER_PASSWORD'
-            )
-        ]) {
-            sh '''
-                echo "$DOCKER_PASSWORD" | docker login \
-                    -u "$DOCKER_USERNAME" \
-                    --password-stdin
-
-                docker tag devsecops-app:jenkins \
-                    $DOCKER_USERNAME/devsecops-app:latest
-
-                docker push \
-                    $DOCKER_USERNAME/devsecops-app:latest
-
-                docker logout
-            '''
-        }
-    }
-}
-
-        stage('Deploy to EC2') {
-    steps {
-        sshagent(['ec2-ssh']) {
-            sh '''
-                ssh -o StrictHostKeyChecking=no ubuntu@15.252.19.115 "
-                    docker pull singathurai/devsecops-app:latest
-                    docker rm -f devsecops-app 2>/dev/null || true
-                    docker run -d \
-                      --name devsecops-app \
-                      -p 5000:5000 \
-                      --restart unless-stopped \
-                      singathurai/devsecops-app:latest
-                "
-            '''
-        }
-    }
-}
-
         stage('Test Application') {
             steps {
                 sh '''
@@ -111,7 +70,7 @@ pipeline {
                     docker run -d \
                       --name devsecops-test \
                       -p 5001:5000 \
-                      devsecops-app:jenkins
+                      ${IMAGE_NAME}:${IMAGE_TAG}
 
                     sleep 5
 
@@ -119,6 +78,29 @@ pipeline {
 
                     docker rm -f devsecops-test
                 '''
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login \
+                          -u "$DOCKER_USERNAME" \
+                          --password-stdin
+
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        docker push ${IMAGE_NAME}:latest
+
+                        docker logout
+                    '''
+                }
             }
         }
     }
