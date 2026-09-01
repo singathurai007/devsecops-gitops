@@ -89,7 +89,7 @@ pipeline {
     steps {
         sshagent(['ec2-ssh']) {
             sh '''
-                ssh -o StrictHostKeyChecking=no ubuntu@YOUR_EC2_PUBLIC_IP "
+                ssh -o StrictHostKeyChecking=no ubuntu@15.252.19.115 "
                     docker pull singathurai/devsecops-app:latest
                     docker rm -f devsecops-app 2>/dev/null || true
                     docker run -d \
