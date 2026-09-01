@@ -4,7 +4,6 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'singathurai/devsecops-app'
-        SONARQUBE_SERVER = 'sonarqube'
         SONAR_HOST_URL = 'http://15.252.19.115:9000'
     }
 
@@ -41,7 +40,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${SONARQUBE_SERVER}") {
+                withSonarQubeEnv('sonarqube') {
                     withCredentials([
                         string(
                             credentialsId: 'sonarqube-token',
@@ -56,7 +55,7 @@ pipeline {
                                   -Dsonar.projectKey=devsecops-app \
                                   -Dsonar.sources=app \
                                   -Dsonar.host.url=${SONAR_HOST_URL} \
-                                  -Dsonar.token=${SONAR_TOKEN}
+                                  -Dsonar.token=\$SONAR_TOKEN
                             """
                         }
                     }
@@ -98,7 +97,6 @@ pipeline {
                           --password-stdin
 
                         docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-
                         docker push ${DOCKER_IMAGE}:latest
 
                         docker logout
@@ -110,19 +108,19 @@ pipeline {
         stage('Update Kubernetes Manifest') {
             steps {
                 withCredentials([
-                    string(
-                        credentialsId: 'github-token',
-                        variable: 'GITHUB_TOKEN'
+                    usernamePassword(
+                        credentialsId: 'github-credentials',
+                        usernameVariable: 'GITHUB_USERNAME',
+                        passwordVariable: 'GITHUB_TOKEN'
                     )
                 ]) {
                     sh '''
-                        git config user.email "cmsingathurai@gmail.com"
-                        git config user.name "singathurai007"
+                        git config user.name "Jenkins"
+                        git config user.email "jenkins@localhost"
 
-                        sed -i "s#image: ${DOCKER_IMAGE}:.*#image: ${DOCKER_IMAGE}:${BUILD_NUMBER}#" \
-                          k8s/deployment.yaml
+                        sed -i "s#image: singathurai/devsecops-app:.*#image: singathurai/devsecops-app:${BUILD_NUMBER}#" k8s/deployment.yaml
 
-                        echo "Updated Kubernetes image:"
+                        echo "Kubernetes image:"
                         grep "image:" k8s/deployment.yaml
 
                         git add k8s/deployment.yaml
@@ -133,7 +131,7 @@ pipeline {
                             git commit -m "Update image to ${BUILD_NUMBER} [skip ci]"
 
                             git push \
-                              https://${GITHUB_TOKEN}@github.com/singathurai007/devsecops-gitops.git \
+                              https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/singathurai007/devsecops-gitops.git \
                               HEAD:main
                         fi
                     '''
@@ -143,6 +141,7 @@ pipeline {
     }
 
     post {
+
         always {
             sh '''
                 docker rm -f devsecops-test 2>/dev/null || true
