@@ -11,29 +11,37 @@ The pipeline automatically builds, scans, analyzes, publishes, and deploys the a
 ## 🏗️ Architecture
 
 Developer
-    ↓
-GitHub
-    ↓
-Jenkins
-    ↓
-Docker Build
-    ↓
-Trivy Security Scan
-    ↓
-SonarQube Code Analysis
-    ↓
-Docker Hub
-    ↓
-GitOps Repository
-    ↓
-ArgoCD
-    ↓
-Kubernetes
-    ↓
-Flask Application
-
----
-
+    │
+    ▼
+ GitHub
+    │
+    ▼
+ Jenkins
+    │
+    ├── Docker Build
+    ├── Trivy Scan
+    ├── SonarQube
+    ├── Application Test
+    └── Docker Hub Push
+             │
+             ▼
+      GitOps Repository
+             │
+             ▼
+          ArgoCD
+             │
+       Auto Sync
+       Self Heal
+             │
+             ▼
+        Kubernetes
+          │     │
+          ▼     ▼
+        Pod    Pod
+          │     │
+          └──┬──┘
+             ▼
+       Flask Application
 ## 🛠️ Technologies Used
 
 - AWS EC2
