@@ -1,4 +1,4 @@
-"<img width="1536" height="1024" alt="devsecops" src="https://github.com/user-attachments/assets/3597afc1-0eb9-4ff0-9be8-029b02765c0c" />
+<img width="1536" height="1024" alt="devsecops" src="https://github.com/user-attachments/assets/3597afc1-0eb9-4ff0-9be8-029b02765c0c" />
 
 
 # 🚀 DevSecOps & GitOps CI/CD Pipeline
