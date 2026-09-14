@@ -1,3 +1,6 @@
+<img src="<img width="1536" height="1024" alt="devsecops" src="https://github.com/user-attachments/assets/3597afc1-0eb9-4ff0-9be8-029b02765c0c" />
+" alt="Singathurai C - Junior Cloud & DevOps Engineer" width="100%">
+
 # 🚀 DevSecOps & GitOps CI/CD Pipeline
 
 An end-to-end **DevSecOps and GitOps CI/CD project** that automates application build, security scanning, code quality analysis, container publishing, and Kubernetes deployment.
